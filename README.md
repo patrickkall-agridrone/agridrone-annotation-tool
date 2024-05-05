@@ -45,3 +45,6 @@ Press 's' to save the annotations for the current image.
 Press 'n' to move to the next image.
 ### Quit: 
 Press 'q' to quit the program.
+
+# License
+GNU General Public License v2.0
