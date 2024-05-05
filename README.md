@@ -10,7 +10,7 @@ Clone the repository:
 
 Copy code
 ```bash
-git clone https://github.com/your-repo/agridrone-annotation-tool.git
+git clone https://github.com/patrickkall-agridrone/agridrone-annotation-tool.git
 cd agridrone-annotation-tool
 ```
 ## Install dependencies:
