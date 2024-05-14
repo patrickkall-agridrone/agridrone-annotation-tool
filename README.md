@@ -33,10 +33,10 @@ image_dir = './Training/Fir'
 annotate_images(image_dir)
 ```
 ## Annotate images:
-### Draw Bounding Boxes: 
-Click and drag with the left mouse button.
+### Create Bounding Boxes: 
+Click and a square will be created around the center of the click. 
 ### Add Labels: 
-After drawing a box, type the label in the popup that appears below the header.
+After adding a box, type the label in the popup that appears below the header.
 ### Remove Boxes: 
 Right-click on an existing bounding box to remove it.
 ### Save Annotations: 
