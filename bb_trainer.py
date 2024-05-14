@@ -63,15 +63,15 @@ def draw_rectangle(event, x, y, flags, param):
 
     if event == cv2.EVENT_LBUTTONDOWN:
         drawing = True
-        ix, iy = x, y
+        ix, iy = x - 350, y - 350  # Adjust the initial point to be the center of a 700x700 square
     elif event == cv2.EVENT_MOUSEMOVE:
         if drawing:
             temp_img = img_with_header.copy()
-            cv2.rectangle(temp_img, (ix, iy), (x, y), RECT_COLOR, 2)
+            cv2.rectangle(temp_img, (ix, iy), (ix + 700, iy + 700), RECT_COLOR, 2)  # Draw a 700x700 square
             cv2.imshow('Image with Header', temp_img)
     elif event == cv2.EVENT_LBUTTONUP:
         drawing = False
-        current_rect = [ix, iy, x, y]
+        current_rect = [ix, iy, ix + 700, iy + 700]  # Define a 700x700 square
         label = get_label_via_opencv(img_with_header.copy())  # Collect label from user input
         rects.append(current_rect)  # Use list instead of tuple
         annotations[str(current_rect)] = label  # Convert rect to a string key
@@ -85,7 +85,6 @@ def draw_rectangle(event, x, y, flags, param):
                 break
         img_with_boxes = redraw_boxes(img_with_header)
         cv2.imshow('Image with Header', img_with_boxes)
-
 def redraw_boxes(img):
     """ Redraw bounding boxes and labels on the image """
     img_copy = img.copy()
