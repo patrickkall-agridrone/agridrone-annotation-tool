@@ -20,7 +20,8 @@ Copy code
 pip install opencv-python numpy
 ```
 ## Add a custom logo (Optional):
-If you have a custom logo you'd like to use, place the logo in the logo folder with the filename customcolor_logo.png. The image should ideally have a transparent background.
+If you have a custom logo you'd like to use, place the logo in the logo folder with the filename logo.jpeg. 
+
 # Usage
 ## Prepare your images:
 Place all images you want to annotate inside a directory, for example, Training/Fir.
@@ -34,7 +35,7 @@ annotate_images(image_dir)
 ```
 ## Annotate images:
 ### Create Bounding Boxes: 
-Click and a square will be created around the center of the click. 
+Click and draw a square over the object you want to annotate. 
 ### Add Labels: 
 After adding a box, type the label in the popup that appears below the header.
 ### Remove Boxes: 
