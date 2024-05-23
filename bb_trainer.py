@@ -16,30 +16,35 @@ RECT_COLOR = (73, 196, 240)  # Yellow (BGR)
 HEADER_COLOR = (44, 20, 72)  # Deep maroon for the header (BGR)
 WHITE_COLOR = (255, 255, 255)  # White for text
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-HEADER_FONT_SCALE = 3.0  # Increased for better visibility of header text
-HEADER_FONT_THICKNESS = 4
-FONT_SCALE = 1.8  # Increased for better visibility of annotations and help text
-FONT_THICKNESS = 2
-HEADER_HEIGHT = 350
-INPUT_HEIGHT = 100  # Increased for larger annotation input field
+HEADER_FONT_SCALE = 0.8  # Increased for better visibility of header text
+HEADER_FONT_THICKNESS = 1
+FONT_SCALE = 0.5  # Increased for better visibility of annotations and help text
+FONT_THICKNESS = 1
+HEADER_HEIGHT = 90
+HEADER_WIDTH = 1280  # Fixed width for the header and window
+INPUT_HEIGHT = 50  # Increased for larger annotation input field
+
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 1024
 
 # Display help commands on the header
 def display_help(img):
     commands = ["'S' - Save", "'Q' - Quit", "'N' - Next Image", "'R' - Remove Box"]
-    max_width = img.shape[1]
-    start_y = 90
+    max_width = HEADER_WIDTH
+    start_y = 20
     for command in commands:
         text_size = cv2.getTextSize(command, FONT, FONT_SCALE, FONT_THICKNESS)[0]
-        cv2.putText(img, command, (max_width - text_size[0] - 40, start_y), FONT, FONT_SCALE, WHITE_COLOR, FONT_THICKNESS)
-        start_y += 70  # Increased space between help commands
+        cv2.putText(img, command, (max_width - text_size[0] - 20, start_y), FONT, FONT_SCALE, WHITE_COLOR, FONT_THICKNESS)
+        start_y += 20  # Increased space between help commands
 
 # Display prompt text for annotation input
 def display_prompt(img, prompt_text):
-    cv2.rectangle(img, (0, HEADER_HEIGHT), (img.shape[1], HEADER_HEIGHT + INPUT_HEIGHT), HEADER_COLOR, -1)
-    cv2.putText(img, prompt_text, (10, HEADER_HEIGHT + 40), FONT, FONT_SCALE, WHITE_COLOR, FONT_THICKNESS)
-    cv2.imshow('Image with Header', img)
+    prompt_img = img.copy()
+    cv2.rectangle(prompt_img, (0, HEADER_HEIGHT), (HEADER_WIDTH, HEADER_HEIGHT + INPUT_HEIGHT), HEADER_COLOR, -1)
+    cv2.putText(prompt_img, prompt_text, (10, HEADER_HEIGHT + 40), FONT, FONT_SCALE, WHITE_COLOR, FONT_THICKNESS)
+    cv2.imshow('Image with Header', prompt_img)
 
-# Collect user input for annotations
+# Collect user input for annotations with backspace functionality
 def get_label_via_opencv(img):
     label = ""
     while True:
@@ -98,7 +103,8 @@ def redraw_boxes(img):
 
 # Add header with logo and text to the image
 def add_header(img):
-    header_img = np.full((HEADER_HEIGHT, img.shape[1], 3), HEADER_COLOR, dtype=np.uint8)
+    # Ensure the header width is fixed
+    header_img = np.full((HEADER_HEIGHT, HEADER_WIDTH, 3), HEADER_COLOR, dtype=np.uint8)
     logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
     if logo is not None and logo.any():
         # Maintain aspect ratio while resizing
@@ -106,7 +112,7 @@ def add_header(img):
         aspect_ratio = logo.shape[1] / logo.shape[0]
         logo_width = int(logo_height * aspect_ratio)
         resized_logo = cv2.resize(logo, (logo_width, logo_height), interpolation=cv2.INTER_AREA)
-        # Overlay the resized logo onto the header image
+        # Set background color for the logo area to match the header color
         for c in range(0, 3):
             header_img[:, :logo_width, c] = resized_logo[:, :, c]
     text = "AgriDrone Bounding Boxes & Annotation Tool"
@@ -115,7 +121,28 @@ def add_header(img):
     text_y = (HEADER_HEIGHT + text_size[1]) // 2
     cv2.putText(header_img, text, (text_x, text_y), FONT, HEADER_FONT_SCALE, WHITE_COLOR, HEADER_FONT_THICKNESS)
     display_help(header_img)
-    return np.vstack([header_img, img])
+    
+    return header_img
+
+# Resize and pad image to maintain aspect ratio
+def resize_and_pad_image(img):
+    aspect_ratio = img.shape[1] / img.shape[0]
+    if aspect_ratio > 1:
+        img_resized = cv2.resize(img, (WINDOW_WIDTH, int(WINDOW_WIDTH / aspect_ratio)))
+        padding_top_bottom = max(0, (WINDOW_HEIGHT - HEADER_HEIGHT - INPUT_HEIGHT - img_resized.shape[0]) // 2)
+        img_resized = cv2.copyMakeBorder(img_resized, padding_top_bottom, padding_top_bottom, 0, 0, cv2.BORDER_CONSTANT, value=HEADER_COLOR)
+    else:
+        img_resized = cv2.resize(img, (int((WINDOW_HEIGHT - HEADER_HEIGHT - INPUT_HEIGHT) * aspect_ratio), WINDOW_HEIGHT - HEADER_HEIGHT - INPUT_HEIGHT))
+        padding_left_right = max(0, (WINDOW_WIDTH - img_resized.shape[1]) // 2)
+        img_resized = cv2.copyMakeBorder(img_resized, 0, 0, padding_left_right, padding_left_right, cv2.BORDER_CONSTANT, value=HEADER_COLOR)
+    
+    return img_resized
+
+# Combine header, image, and prompt into one display image
+def combine_images(header_img, img, prompt_img):
+    full_img = np.vstack([header_img, img])
+    full_img = np.vstack([full_img, prompt_img])
+    return full_img
 
 # Main function to handle the annotation process
 def annotate_images(image_dir):
@@ -124,14 +151,19 @@ def annotate_images(image_dir):
         print(f"Directory not found: {image_dir}")
         return
     files = [f for f in os.listdir(image_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))]
+    cv2.namedWindow('Image with Header', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Image with Header', WINDOW_WIDTH, WINDOW_HEIGHT)
     for file in files:
         img_path = os.path.join(image_dir, file)
         img = cv2.imread(img_path)
         if img is None:
             continue
-        img_with_header = add_header(img)
+        header_img = add_header(img)
+        img_resized = resize_and_pad_image(img)
+        prompt_img = np.full((INPUT_HEIGHT, HEADER_WIDTH, 3), HEADER_COLOR, dtype=np.uint8)
+        img_with_header = combine_images(header_img, img_resized, prompt_img)
         cv2.imshow('Image with Header', img_with_header)
-        cv2.setMouseCallback('Image with Header', draw_rectangle, [img, img_with_header])
+        cv2.setMouseCallback('Image with Header', draw_rectangle, [img_resized, img_with_header])
         while True:
             key = cv2.waitKey(0) & 0xFF
             if key == ord('s'):
@@ -142,6 +174,10 @@ def annotate_images(image_dir):
             elif key == ord('q'):
                 cv2.destroyAllWindows()
                 return
+            elif key == ord('n'):  # Move to the next image
+                rects = []
+                annotations = {}
+                break
 
 # Save annotations to a JSON file
 def save_annotations(filename, directory, annotations):
